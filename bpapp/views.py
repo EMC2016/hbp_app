@@ -1,0 +1,45 @@
+from django.shortcuts import render
+# import request
+from django.http import JsonResponse
+
+FHIR_SERVER = "https://fhir-server.com"
+
+
+def dashboard(request, patient_id):
+    """Render dashboard.html initially"""
+    return render(request, "dashboard.html", {"patient_id": patient_id})
+
+
+def get_bp_data(request, patient_id):
+    # """Fetch blood pressure data from FHIR API"""
+    # url = f"{FHIR_SERVER}/Observation?patient={patient_id}&code=85354-9"
+    # response = requests.get(url)
+    # bp_data = response.json()
+    
+    # # Extract systolic & diastolic values
+    # readings = [
+    #     {"date": obs["resource"]["effectiveDateTime"], 
+    #      "systolic": obs["resource"]["component"][0]["valueQuantity"]["value"], 
+    #      "diastolic": obs["resource"]["component"][1]["valueQuantity"]["value"]}
+    #     for obs in bp_data.get("entry", [])
+    # ]
+    
+    data = {
+        "bp_readings": [
+            {"date": "2024-02-01", "systolic": 130, "diastolic": 85},
+            {"date": "2024-02-02", "systolic": 135, "diastolic": 88},
+            {"date": "2024-02-03", "systolic": 140, "diastolic": 90},
+        ]
+    }
+    return JsonResponse(data)
+    
+    # return render(request, "dashboard.html", {"patient_id": patient_id})
+
+def predict_bp(request, patient_id):
+    """Simulated AI prediction (Replace with ML model)"""
+    future_readings = [
+        {"date": "2024-02-15", "systolic": 130, "diastolic": 85},
+        {"date": "2024-02-16", "systolic": 135, "diastolic": 90},
+    ]
+    
+    return JsonResponse({"predicted_bp": future_readings})
