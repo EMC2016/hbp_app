@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure--)yy9(#v(_+rp&b+2jl_w2ffxm_k2!1jvg!@6$6!s2a=xb82r9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "240affe2d18070.lhr.life"]
 
 
 # Application definition
@@ -53,6 +53,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # "corsheaders.middleware.CorsMiddleware",
 ]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://240affe2d18070.lhr.life",
+    ]
+CSRF_COOKIE_SECURE = True  # Ensure cookie is sent over HTTPS
+CSRF_COOKIE_HTTPONLY = False  # Allow frontend JS to read CSRF token
+CSRF_USE_SESSIONS = False  # Store CSRF token in a cookie instead of session
+
 
 ROOT_URLCONF = 'django_project.urls'
 
@@ -125,7 +133,10 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")  # Required for collectstatic

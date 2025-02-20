@@ -5,11 +5,16 @@
     <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
     <h1>Blood Pressure Dashboard</h1>
 
     <!-- React Container (Django passes patient ID dynamically) -->
+    {% comment %} The dataset API in JavaScript automatically converts data-
+    attributes into properties inside element.dataset. {% endcomment %}
     <div id="react-bp-chart" data-patient-id="{{ patient_id }}"></div>
 
     <!-- Load React Script -->

@@ -20,4 +20,5 @@ from django.urls import path,include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('bp/',include('bpapp.urls')),
+    path('cds-services/',include('bpapp.urls')),
 ]

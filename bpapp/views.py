@@ -1,12 +1,49 @@
 from django.shortcuts import render
-# import request
+import json
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 FHIR_SERVER = "https://fhir-server.com"
 
 
+def discovery_cds_services(request):
+    print("discovery request: ",request.method)
+    return JsonResponse({
+        'services':[
+            {
+                'hook':'patient-view',
+                'title':'HyperPredict',
+                'description':'Hello, this is an AI assisted app for blood pressure management!',
+                'id':'80120',
+                # 'prefetch':{
+                    
+                # }
+            }
+        ]
+        })
+@csrf_exempt 
+def check_id(request,app_id):
+    print("app id: ",app_id)
+    print("request: ",request.method)
+    if app_id=="80120":
+        print('Valid user!')
+        # if not request.body:
+        #     return JsonResponse({"error": "Empty request body"}, status=400)
+
+        # try:
+        headers = dict(request.get_json())
+        print("Raw header: ",headers)
+
+        # body = json.loads(request.body.decode('utf-8'))
+        # print("body:", body)
+        # except json.JSONDecodeError:
+        #     return JsonResponse({"error": "Invalid JSON format"}, status=400)
+    return JsonResponse({"response:":"request received"})
+
+
 def dashboard(request, patient_id):
     """Render dashboard.html initially"""
+    
     return render(request, "dashboard.html", {"patient_id": patient_id})
 
 
