@@ -5,40 +5,93 @@ from django.views.decorators.csrf import csrf_exempt
 
 FHIR_SERVER = "https://fhir-server.com"
 
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+@api_view(["POST"])
+def my_api_view(request):
+    data = request.data  # DRF automatically parses JSON
+    print("Received data:", data)
+
+    event_type = data.get("eventType")
+    patient_id = data.get("patientId")
+
+    return Response({"message": "Success", "eventType": event_type, "patientId": patient_id})
+
+
 
 def discovery_cds_services(request):
     print("discovery request: ",request.method)
     return JsonResponse({
         'services':[
             {
-                'hook':'patient-view',
+                'hook':"patient-view",
                 'title':'HyperPredict',
                 'description':'Hello, this is an AI assisted app for blood pressure management!',
                 'id':'80120',
-                # 'prefetch':{
-                    
-                # }
+                'prefetch': {
+                    'patient': "Patient/{{context.patientId}}",
+                    'conditions': "Condition?patient={{context.patientId}}",
+                },
             }
         ]
         })
 @csrf_exempt 
 def check_id(request,app_id):
     print("app id: ",app_id)
-    print("request: ",request.method)
+    print("Method:", request.method)
+    print("Path:", request.path)
+
+    all_headers = dict(request.headers)
+    print("Headers:", all_headers)
+
+    meta_info = dict(request.META)
+    print("META:", meta_info)
+
+    raw_body = request.body
+    print("Raw body (bytes):", raw_body)
+    
     if app_id=="80120":
         print('Valid user!')
-        # if not request.body:
-        #     return JsonResponse({"error": "Empty request body"}, status=400)
+        print(request.META.get("HTTP_TRANSFER_ENCODING"))
+        
+        if not request.body:
+            return JsonResponse({"error": "Empty request body"}, status=400)
+        body = json.loads(request.body.decode('utf-8'))
+        print("body:", body)
+        return JsonResponse({
+            "cards":[
+                {
+                    "summary":"Hello world!",
+                    "indicator":"info",
+                    "source":{
+                        "label":"test service",
+                    },
+                    "links":[
+                        {
+                            "label":"HyperTension App",
+                            "url":"https://45aafa042c34e0.lhr.life/dashboard",
+                            "type":"absolute",
+                        }
+                    ]
+                }
+            ]
+        })
+        
 
         # try:
-        headers = dict(request.get_json())
-        print("Raw header: ",headers)
+        # headers = dict(request.headers)
+        # print("Raw header: ",headers)
+        # data = json.loads(request.body)
+        # print("Received data:", data)
+        # return HttpResponse("Data received successfully")
 
-        # body = json.loads(request.body.decode('utf-8'))
-        # print("body:", body)
+
         # except json.JSONDecodeError:
         #     return JsonResponse({"error": "Invalid JSON format"}, status=400)
-    return JsonResponse({"response:":"request received"})
+        # data = request.data  # DRF automatically parses JSON
+        # print("Received data:", data)
+    
 
 
 def dashboard(request, patient_id):

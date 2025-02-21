@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure--)yy9(#v(_+rp&b+2jl_w2ffxm_k2!1jvg!@6$6!s2a=xb82r9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "240affe2d18070.lhr.life"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "9165-23-119-227-232.ngrok-free.app"]
 
 
 # Application definition
@@ -39,9 +39,18 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'bpapp',
+    'rest_framework',
     # 'corsheaders',  # Allow frontend-backend communication
     # 'rest_framework',  # Django REST Framework
 ]
+
+REST_FRAMEWORK = {
+    # Use Django's standard `django.contrib.auth` permissions,
+    # or allow read-only access for unauthenticated users.
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ]
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -55,7 +64,8 @@ MIDDLEWARE = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://240affe2d18070.lhr.life",
+   
+    "https://9165-23-119-227-232.ngrok-free.app",
     ]
 CSRF_COOKIE_SECURE = True  # Ensure cookie is sent over HTTPS
 CSRF_COOKIE_HTTPONLY = False  # Allow frontend JS to read CSRF token
