@@ -3,22 +3,6 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-FHIR_SERVER = "https://fhir-server.com"
-
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-
-@api_view(["POST"])
-def my_api_view(request):
-    data = request.data  # DRF automatically parses JSON
-    print("Received data:", data)
-
-    event_type = data.get("eventType")
-    patient_id = data.get("patientId")
-
-    return Response({"message": "Success", "eventType": event_type, "patientId": patient_id})
-
-
 
 def discovery_cds_services(request):
     print("discovery request: ",request.method)
