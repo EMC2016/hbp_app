@@ -15,34 +15,44 @@ def discovery_cds_services(request):
                 'id':'80120',
                 'prefetch': {
                     'patient': "Patient/{{context.patientId}}",
-                    'conditions': "Condition?patient={{context.patientId}}",
+                    'observations': "Observation?patient={{context.patientId}}",
                 },
             }
         ]
         })
 @csrf_exempt 
 def check_id(request,app_id):
-    print("app id: ",app_id)
-    print("Method:", request.method)
-    print("Path:", request.path)
+    # print("app id: ",app_id)
+    # print("Method:", request.method)
+    # print("Path:", request.path)
 
-    all_headers = dict(request.headers)
-    print("Headers:", all_headers)
+    # all_headers = dict(request.headers)
+    # print("Headers:", all_headers)
 
-    meta_info = dict(request.META)
-    print("META:", meta_info)
+    # meta_info = dict(request.META)
+    # print("META:", meta_info)
 
-    raw_body = request.body
-    print("Raw body (bytes):", raw_body)
     
     if app_id=="80120":
-        print('Valid user!')
-        print(request.META.get("HTTP_TRANSFER_ENCODING"))
+        # print('Valid user!')
+        # print(request.META.get("HTTP_TRANSFER_ENCODING"))
         
-        if not request.body:
-            return JsonResponse({"error": "Empty request body"}, status=400)
-        body = json.loads(request.body.decode('utf-8'))
-        print("body:", body)
+        wsgi_input = request.META.get("wsgi.input")
+        if not wsgi_input:
+            return JsonResponse({"error": "WSGI input stream unavailable"}, status=500)
+
+        body = b""
+        while True:
+            chunk = wsgi_input.read(4096)  # Read in 4KB chunks
+            if not chunk:
+                break
+            body += chunk  
+        decoded_body = body.decode("utf-8")  
+        json_data = json.loads(decoded_body)
+        formatted_body = json.dumps(json_data, indent=4)
+        print(formatted_body)
+       
+        
         return JsonResponse({
             "cards":[
                 {
@@ -54,33 +64,25 @@ def check_id(request,app_id):
                     "links":[
                         {
                             "label":"HyperTension App",
-                            "url":"https://45aafa042c34e0.lhr.life/dashboard",
-                            "type":"absolute",
+                            "url":"https://ba7adcd78b8bcf.lhr.life/bpapp/launch",
+                            "type":"smart",
                         }
                     ]
                 }
             ]
         })
-        
-
-        # try:
-        # headers = dict(request.headers)
-        # print("Raw header: ",headers)
-        # data = json.loads(request.body)
-        # print("Received data:", data)
-        # return HttpResponse("Data received successfully")
-
-
-        # except json.JSONDecodeError:
-        #     return JsonResponse({"error": "Invalid JSON format"}, status=400)
-        # data = request.data  # DRF automatically parses JSON
-        # print("Received data:", data)
-    
-
-
-def dashboard(request, patient_id):
+            
+def dashboard(request):
     """Render dashboard.html initially"""
-    
+    patient_id = "123"
+    # data = {
+    #     "bp_readings": [
+    #         {"date": "2024-02-01", "systolic": 130, "diastolic": 85},
+    #         {"date": "2024-02-02", "systolic": 135, "diastolic": 88},
+    #         {"date": "2024-02-03", "systolic": 140, "diastolic": 90},
+    #     ]
+    # }
+    # return JsonResponse(data)
     return render(request, "dashboard.html", {"patient_id": patient_id})
 
 

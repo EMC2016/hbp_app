@@ -12,7 +12,7 @@ const BPChart = ({ patientId }) => {
 
   useEffect(() => {
     console.log("Fetch data from patient: ", patientId);
-    fetch(`/bp/api/${patientId}/`) // Django API endpoint
+    fetch(`/bpapp/api/${patientId}/`) // Django API endpoint
       .then((response) => response.json())
       .then((data) => setBpData(data.bp_readings));
   }, [patientId]);

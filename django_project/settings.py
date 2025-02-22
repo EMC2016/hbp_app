@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure--)yy9(#v(_+rp&b+2jl_w2ffxm_k2!1jvg!@6$6!s2a=xb82r9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "9165-23-119-227-232.ngrok-free.app"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "ba7adcd78b8bcf.lhr.life"]
 
 
 # Application definition
@@ -60,12 +60,16 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     # "corsheaders.middleware.CorsMiddleware",
 ]
 
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+
 CSRF_TRUSTED_ORIGINS = [
    
-    "https://9165-23-119-227-232.ngrok-free.app",
+    "https://ba7adcd78b8bcf.lhr.life",
     ]
 CSRF_COOKIE_SECURE = True  # Ensure cookie is sent over HTTPS
 CSRF_COOKIE_HTTPONLY = False  # Allow frontend JS to read CSRF token

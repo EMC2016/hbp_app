@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from "react";
-import ReactDOM from "react-dom";
-import Chart from "chart.js/auto";
+// import React, { useEffect, useState } from "react";
+// import ReactDOM from "react-dom";
+// import Chart from "chart.js/auto";
 
 console.log("React BP Chart loaded successfully!");
-// const { useEffect, useState } = React;
-// const { render } = ReactDOM;
+const { useEffect, useState } = React;
+const { render } = ReactDOM;
+
 const BPChart = ({ patientId }) => {
+  console.log("BPChart component is rendering...");
   const [bpData, setBpData] = useState([]);
 
   useEffect(() => {
+    console.log("Fetch data from patient: ", patientId);
     fetch(`/bp/api/${patientId}/`) // Django API endpoint
       .then((response) => response.json())
       .then((data) => setBpData(data.bp_readings));
@@ -43,15 +46,20 @@ const BPChart = ({ patientId }) => {
       },
     });
   }, [bpData]);
-
+  console.log("return canvas");
   return React.createElement("canvas", { id: "bpChart" });
 };
 
 // Mount the React component to a Django template element
 const rootElement = document.getElementById("react-bp-chart");
 if (rootElement) {
+  console.log("Mounting React component...");
   ReactDOM.render(
-    <BPChart patientId={rootElement.dataset.patientId} />,
+    React.createElement(BPChart, {
+      patientId: rootElement.dataset.patientId,
+    }),
     rootElement
   );
+} else {
+  console.error("Error: Could not find `react-bp-chart` div in HTML!");
 }
