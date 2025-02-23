@@ -1,8 +1,15 @@
 from django.shortcuts import render
 import json
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-
+from urllib.parse import urlencode
+from django.http import HttpResponseRedirect, HttpResponseBadRequest
+from django.shortcuts import redirect
+from django.conf import settings
+import pkce
+import secrets
+import requests
+from django.http import JsonResponse, HttpResponseBadRequest
+from meldrx_fhir_client import FHIRClient
 
 def discovery_cds_services(request):
     print("discovery request: ",request.method)
@@ -20,18 +27,9 @@ def discovery_cds_services(request):
             }
         ]
         })
+
 @csrf_exempt 
 def check_id(request,app_id):
-    # print("app id: ",app_id)
-    # print("Method:", request.method)
-    # print("Path:", request.path)
-
-    # all_headers = dict(request.headers)
-    # print("Headers:", all_headers)
-
-    # meta_info = dict(request.META)
-    # print("META:", meta_info)
-
     
     if app_id=="80120":
         # print('Valid user!')
@@ -50,7 +48,7 @@ def check_id(request,app_id):
         decoded_body = body.decode("utf-8")  
         json_data = json.loads(decoded_body)
         formatted_body = json.dumps(json_data, indent=4)
-        print(formatted_body)
+        print("Get Prefetch formatted_body!")
        
         
         return JsonResponse({
@@ -64,42 +62,120 @@ def check_id(request,app_id):
                     "links":[
                         {
                             "label":"HyperTension App",
-                            "url":"https://ba7adcd78b8bcf.lhr.life/bpapp/launch",
+                            "url":"https://4a62e816465cd1.lhr.life/bpapp/launch",
+                            # "url":"http://localhost:4434/launch",
                             "type":"smart",
                         }
                     ]
+                    
                 }
             ]
         })
+     
+     
+
+
+def launch_app(request):
+    """Generates the OIDC authentication URL with PKCE and state protection"""
+
+    # Generate a random state (for CSRF protection)
+    state = secrets.token_hex(16)  # Equivalent to JavaScript's random state
+
+    # Generate a PKCE code verifier and challenge
+    code_verifier = pkce.generate_code_verifier(length=64)  # Secure random string
+    code_challenge = pkce.get_code_challenge(code_verifier)
+
+    # Store these values in the session for later token exchange
+    request.session["oidc_state"] = state
+    request.session["oidc_code_verifier"] = code_verifier  # Save to validate PKCE
+
+    # Construct the OIDC authorization URL
+    oidc_params = {
+        "client_id": settings.OIDC_CLIENT_ID,
+        "redirect_uri": settings.OIDC_REDIRECT_URI,
+        "response_type": "code",
+        "scope": settings.OIDC_RP_SCOPES,
+        "state": state,
+        "code_challenge": code_challenge,
+        "code_challenge_method": "S256",
+        "response_mode": "query",  # Default behavior
+    }
+
+    auth_url = f"{settings.OIDC_AUTHORITY}/connect/authorize?{urlencode(oidc_params)}"
+
+    print(f"Redirecting to OIDC URL: {auth_url}")  # Debugging
+
+    return redirect(auth_url)
+
+
+
+def callback(request):
+    """Handles OIDC callback and processes the signin response"""
+    print("Procee CallBack: ",request)
+    # Extract the authorization code from the request
+    auth_code = request.GET.get("code")
+    state = request.GET.get("state")
+    
+    if not auth_code:
+        return HttpResponseBadRequest("Missing authorization code")
+
+    # Validate the state parameter (CSRF protection)
+    if state != request.session.get("oidc_state"):
+        return HttpResponseBadRequest("Invalid state parameter")
+
+    # Retrieve the stored PKCE code verifier
+    code_verifier = request.session.get("oidc_code_verifier")
+    if not code_verifier:
+        return HttpResponseBadRequest("PKCE verifier missing")
+    
+    
+    
+        # Exchange the authorization code for tokens
+    token_data = {
+        "grant_type": "authorization_code",
+        "code": auth_code,
+        "redirect_uri": settings.OIDC_REDIRECT_URI,
+        "client_id": settings.OIDC_CLIENT_ID,
+        "code_verifier": code_verifier,  # Must match the original challenge
+        "scope": "openid profile launch patient/*.read",  # Ensure all scopes are requested
+    }
+
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+    # Send the POST request to the OIDC token endpoint
+    response = requests.post(settings.OIDC_TOKEN_ENDPOINT, data=token_data, headers=headers)
+
+    if response.status_code != 200:
+        return HttpResponseBadRequest(f"Failed to exchange code for token: {response.text}")
+
+    token_json = response.json()
+    print("response: ",token_json)
+   
+    access_token = token_json['access_token']
+    client = FHIRClient.for_bearer_token(base_url = 'https://app.meldrx.com/api/fhir/6333be1c-2e03-4328-ae35-a4afcf80a869',
+                                         accessToken=access_token )
+    
+    patient = client.read_resource(resourceType='Patient',resourceId=token_json['id_token'])
+    return JsonResponse(patient)
+   
+    #return JsonResponse(token_json)
+    # return JsonResponse(token_response)
+
+
+
+
             
 def dashboard(request):
     """Render dashboard.html initially"""
     patient_id = "123"
-    # data = {
-    #     "bp_readings": [
-    #         {"date": "2024-02-01", "systolic": 130, "diastolic": 85},
-    #         {"date": "2024-02-02", "systolic": 135, "diastolic": 88},
-    #         {"date": "2024-02-03", "systolic": 140, "diastolic": 90},
-    #     ]
-    # }
-    # return JsonResponse(data)
+   
     return render(request, "dashboard.html", {"patient_id": patient_id})
 
 
 def get_bp_data(request, patient_id):
     # """Fetch blood pressure data from FHIR API"""
-    # url = f"{FHIR_SERVER}/Observation?patient={patient_id}&code=85354-9"
-    # response = requests.get(url)
-    # bp_data = response.json()
-    
-    # # Extract systolic & diastolic values
-    # readings = [
-    #     {"date": obs["resource"]["effectiveDateTime"], 
-    #      "systolic": obs["resource"]["component"][0]["valueQuantity"]["value"], 
-    #      "diastolic": obs["resource"]["component"][1]["valueQuantity"]["value"]}
-    #     for obs in bp_data.get("entry", [])
-    # ]
-    
     data = {
         "bp_readings": [
             {"date": "2024-02-01", "systolic": 130, "diastolic": 85},

@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure--)yy9(#v(_+rp&b+2jl_w2ffxm_k2!1jvg!@6$6!s2a=xb82r9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "ba7adcd78b8bcf.lhr.life"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "4a62e816465cd1.lhr.life"]
 
 
 # Application definition
@@ -40,8 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'bpapp',
     'rest_framework',
-    # 'corsheaders',  # Allow frontend-backend communication
-    # 'rest_framework',  # Django REST Framework
+    'mozilla_django_oidc',
+
 ]
 
 REST_FRAMEWORK = {
@@ -60,16 +60,19 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    # "corsheaders.middleware.CorsMiddleware",
+    'whitenoise.middleware.WhiteNoiseMiddleware',#load static files for gunicorn.
 ]
+
+
+AUTHENTICATION_BACKENDS = (
+    'mozilla_django_oidc.auth.OIDCAuthenticationBackend',
+)
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 
 CSRF_TRUSTED_ORIGINS = [
-   
-    "https://ba7adcd78b8bcf.lhr.life",
+    "https://4a62e816465cd1.lhr.life",
     ]
 CSRF_COOKIE_SECURE = True  # Ensure cookie is sent over HTTPS
 CSRF_COOKIE_HTTPONLY = False  # Allow frontend JS to read CSRF token
@@ -154,3 +157,25 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")  # Required for collectstatic
+
+
+
+OIDC_RP_CLIENT_ID = '6a2f7de8b53c487c81c5b8c1176402d3'
+# OIDC_RP_CLIENT_SECRET = "LuoNeXA818trnQstnFQn9b193qFmN8"
+OIDC_RP_SIGN_ALGO = 'RS256'
+OIDC_OP_JWKS_ENDPOINT ="https://app.meldrx.com/.well-known/openid-configuration/jwks"
+OIDC_OP_AUTHORIZATION_ENDPOINT ="https://app.meldrx.com/connect/authorize"
+OIDC_OP_TOKEN_ENDPOINT ="https://app.meldrx.com/connect/token"
+OIDC_OP_USER_ENDPOINT ="https://app.meldrx.com/connect/userinfo"
+LOGIN_REDIRECT_URL = "https://4a62e816465cd1.lhr.life/bpapp/dashboard"
+LOGOUT_REDIRECT_URL = "https://4a62e816465cd1.lhr.life/bpapp/dashboard"
+OIDC_USE_PKCE = 'True'
+OIDC_STORE_ACCESS_TOKEN = 'True'
+
+OIDC_RP_SCOPES = 'openid profile launch patient/*.*'
+OIDC_AUTHORITY = "https://app.meldrx.com/"
+OIDC_CLIENT_ID = "6a2f7de8b53c487c81c5b8c1176402d3"
+OIDC_REDIRECT_URI = "https://4a62e816465cd1.lhr.life/bpapp/callback"
+OIDC_TOKEN_ENDPOINT ="https://app.meldrx.com/connect/token"
+OIDC_USERINFO_ENDPOINT = f"{OIDC_AUTHORITY}/userinfo"
+

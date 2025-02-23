@@ -1,7 +1,3 @@
-// import React, { useEffect, useState } from "react";
-// import ReactDOM from "react-dom";
-// import Chart from "chart.js/auto";
-
 console.log("React BP Chart loaded successfully!");
 const { useEffect, useState } = React;
 const { render } = ReactDOM;
@@ -12,6 +8,7 @@ const BPChart = ({ patientId }) => {
 
   useEffect(() => {
     console.log("Fetch data from patient: ", patientId);
+    console.log(window.location);
     fetch(`/bpapp/api/${patientId}/`) // Django API endpoint
       .then((response) => response.json())
       .then((data) => setBpData(data.bp_readings));
