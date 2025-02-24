@@ -25,8 +25,9 @@ SECRET_KEY = 'django-insecure--)yy9(#v(_+rp&b+2jl_w2ffxm_k2!1jvg!@6$6!s2a=xb82r9
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "4a62e816465cd1.lhr.life"]
+URL = "908a39499c0f60.lhr.life"
+BASE_URL = "https://908a39499c0f60.lhr.life"
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", URL]
 
 
 # Application definition
@@ -72,7 +73,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://4a62e816465cd1.lhr.life",
+    f"{BASE_URL}",
     ]
 CSRF_COOKIE_SECURE = True  # Ensure cookie is sent over HTTPS
 CSRF_COOKIE_HTTPONLY = False  # Allow frontend JS to read CSRF token
@@ -160,22 +161,23 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")  # Required for collectstati
 
 
 
-OIDC_RP_CLIENT_ID = '6a2f7de8b53c487c81c5b8c1176402d3'
-# OIDC_RP_CLIENT_SECRET = "LuoNeXA818trnQstnFQn9b193qFmN8"
+OIDC_RP_CLIENT_ID = '8b2eac23c7c6415b9cca55abe431501f'
+#OIDC_RP_CLIENT_SECRET = "LuoNeXA818trnQstnFQn9b193qFmN8"
 OIDC_RP_SIGN_ALGO = 'RS256'
 OIDC_OP_JWKS_ENDPOINT ="https://app.meldrx.com/.well-known/openid-configuration/jwks"
 OIDC_OP_AUTHORIZATION_ENDPOINT ="https://app.meldrx.com/connect/authorize"
 OIDC_OP_TOKEN_ENDPOINT ="https://app.meldrx.com/connect/token"
 OIDC_OP_USER_ENDPOINT ="https://app.meldrx.com/connect/userinfo"
-LOGIN_REDIRECT_URL = "https://4a62e816465cd1.lhr.life/bpapp/dashboard"
-LOGOUT_REDIRECT_URL = "https://4a62e816465cd1.lhr.life/bpapp/dashboard"
+LOGIN_REDIRECT_URL = f"{BASE_URL}/bpapp/dashboard"
+LOGOUT_REDIRECT_URL = f"{BASE_URL}/bpapp/dashboard"
 OIDC_USE_PKCE = 'True'
 OIDC_STORE_ACCESS_TOKEN = 'True'
 
 OIDC_RP_SCOPES = 'openid profile launch patient/*.*'
 OIDC_AUTHORITY = "https://app.meldrx.com/"
-OIDC_CLIENT_ID = "6a2f7de8b53c487c81c5b8c1176402d3"
-OIDC_REDIRECT_URI = "https://4a62e816465cd1.lhr.life/bpapp/callback"
+OIDC_CLIENT_ID = "8b2eac23c7c6415b9cca55abe431501f"
+OIDC_CLIENT_SECRET = "40fF8oMvtF86aheT6tCGcYQLBF7rGS"
+OIDC_REDIRECT_URI = f"{BASE_URL}/bpapp/callback"
 OIDC_TOKEN_ENDPOINT ="https://app.meldrx.com/connect/token"
 OIDC_USERINFO_ENDPOINT = f"{OIDC_AUTHORITY}/userinfo"
 

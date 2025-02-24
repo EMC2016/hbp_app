@@ -9,7 +9,7 @@ import pkce
 import secrets
 import requests
 from django.http import JsonResponse, HttpResponseBadRequest
-from meldrx_fhir_client import FHIRClient
+import jwt
 
 def discovery_cds_services(request):
     print("discovery request: ",request.method)
@@ -48,7 +48,7 @@ def check_id(request,app_id):
         decoded_body = body.decode("utf-8")  
         json_data = json.loads(decoded_body)
         formatted_body = json.dumps(json_data, indent=4)
-        print("Get Prefetch formatted_body!")
+        print("Get Prefetch formatted_body!", formatted_body)
        
         
         return JsonResponse({
@@ -62,8 +62,8 @@ def check_id(request,app_id):
                     "links":[
                         {
                             "label":"HyperTension App",
-                            "url":"https://4a62e816465cd1.lhr.life/bpapp/launch",
-                            # "url":"http://localhost:4434/launch",
+                            "url":f"{settings.BASE_URL}/bpapp/launch",
+                            #"url":"http://localhost:4434/launch",
                             "type":"smart",
                         }
                     ]
@@ -92,6 +92,7 @@ def launch_app(request):
     # Construct the OIDC authorization URL
     oidc_params = {
         "client_id": settings.OIDC_CLIENT_ID,
+        "client_secret": settings.OIDC_CLIENT_SECRET,
         "redirect_uri": settings.OIDC_REDIRECT_URI,
         "response_type": "code",
         "scope": settings.OIDC_RP_SCOPES,
@@ -136,32 +137,38 @@ def callback(request):
         "code": auth_code,
         "redirect_uri": settings.OIDC_REDIRECT_URI,
         "client_id": settings.OIDC_CLIENT_ID,
+        "client_secret": settings.OIDC_CLIENT_SECRET,
         "code_verifier": code_verifier,  # Must match the original challenge
-        "scope": "openid profile launch patient/*.read",  # Ensure all scopes are requested
+        "scope": "openid profile launch patient/*.*", 
+        "response_type": "code",# Ensure all scopes are requested
+        "authority": "https://app.meldrx.com/",
     }
 
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
+   
 
     # Send the POST request to the OIDC token endpoint
-    response = requests.post(settings.OIDC_TOKEN_ENDPOINT, data=token_data, headers=headers)
+    response = requests.post(settings.OIDC_TOKEN_ENDPOINT, data=token_data)
 
     if response.status_code != 200:
         return HttpResponseBadRequest(f"Failed to exchange code for token: {response.text}")
 
     token_json = response.json()
+    id_token = token_json.get("id_token")
+    decoded_id = jwt.decode(id_token, options={"verify_signature": False})
+    access_token = token_json.get("access_token")
+    decoded_access = jwt.decode(access_token, options={"verify_signature": False})
+    tenant_list = json.loads(decoded_access.get('tenant'))
+    # If you expect only one tenant, get the first element:
+    patient_id = tenant_list[0]
+    print("Decoded ID Token:", decoded_id)
+    print("Decoded access Token:",decoded_access)
+    print("Patient ID:",patient_id)
     print("response: ",token_json)
-   
-    access_token = token_json['access_token']
-    client = FHIRClient.for_bearer_token(base_url = 'https://app.meldrx.com/api/fhir/6333be1c-2e03-4328-ae35-a4afcf80a869',
-                                         accessToken=access_token )
     
-    patient = client.read_resource(resourceType='Patient',resourceId=token_json['id_token'])
-    return JsonResponse(patient)
    
-    #return JsonResponse(token_json)
-    # return JsonResponse(token_response)
+    
+   
+    return JsonResponse(token_json)
 
 
 
