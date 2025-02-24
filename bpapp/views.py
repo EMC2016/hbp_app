@@ -10,6 +10,7 @@ import secrets
 import requests
 from django.http import JsonResponse, HttpResponseBadRequest
 import jwt
+from meldrx_fhir_client import FHIRClient
 
 def discovery_cds_services(request):
     print("discovery request: ",request.method)
@@ -139,7 +140,7 @@ def callback(request):
         "client_id": settings.OIDC_CLIENT_ID,
         "client_secret": settings.OIDC_CLIENT_SECRET,
         "code_verifier": code_verifier,  # Must match the original challenge
-        "scope": "openid profile launch patient/*.*", 
+        "scope": settings.OIDC_RP_SCOPES, 
         "response_type": "code",# Ensure all scopes are requested
         "authority": "https://app.meldrx.com/",
     }
@@ -157,16 +158,11 @@ def callback(request):
     decoded_id = jwt.decode(id_token, options={"verify_signature": False})
     access_token = token_json.get("access_token")
     decoded_access = jwt.decode(access_token, options={"verify_signature": False})
-    tenant_list = json.loads(decoded_access.get('tenant'))
-    # If you expect only one tenant, get the first element:
-    patient_id = tenant_list[0]
+    
     print("Decoded ID Token:", decoded_id)
     print("Decoded access Token:",decoded_access)
-    print("Patient ID:",patient_id)
     print("response: ",token_json)
-    
-   
-    
+
    
     return JsonResponse(token_json)
 
