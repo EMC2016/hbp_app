@@ -10,25 +10,74 @@ import secrets
 import requests
 from django.http import JsonResponse, HttpResponseBadRequest
 import jwt
-from meldrx_fhir_client import FHIRClient
+from datetime import datetime, timedelta
 
 def discovery_cds_services(request):
-    print("discovery request: ",request.method)
+    print("discovery request: ", request.method)
+    
+    # Calculate the date two years ago from today
+    two_years_ago = (datetime.utcnow() - timedelta(days=2*365)).strftime("%Y-%m-%d")
+
+    # return JsonResponse({
+    #     'services': [
+    #         {
+    #             'hook': "patient-view",
+    #             'title': 'HyperPredict',
+    #             'description': 'AI-assisted app for blood pressure management and prediction.',
+    #             'id': '80120',
+    #             'prefetch': {
+    #                 'patient': "Patient/{{context.patientId}}",
+    #                 'bmi': f"Observation?patient={{context.patientId}}&code=39156-5&date=ge{two_years_ago}",
+    #                 'waist': f"Observation?patient={{context.patientId}}&code=8280-0&date=ge{two_years_ago}",
+    #                 'sbp': f"Observation?patient={{context.patientId}}&code=8480-6&date=ge{two_years_ago}",
+    #                 'dbp': f"Observation?patient={{context.patientId}}&code=8462-4&date=ge{two_years_ago}",
+    #                 'cavi': f"Observation?patient={{context.patientId}}&code=CUSTOM-CAVI&date=ge{two_years_ago}",  # Custom Code
+    #                 'hdl': f"Observation?patient={{context.patientId}}&code=2085-9&date=ge{two_years_ago}",
+    #                 'ldl': f"Observation?patient={{context.patientId}}&code=13457-7&date=ge{two_years_ago}",
+    #                 'uric_acid': f"Observation?patient={{context.patientId}}&code=14959-1&date=ge{two_years_ago}",
+    #                 'fasting_glucose': f"Observation?patient={{context.patientId}}&code=2339-0&date=ge{two_years_ago}",
+    #                 'triglycerides': f"Observation?patient={{context.patientId}}&code=2571-8&date=ge{two_years_ago}",
+    #                 'alp': f"Observation?patient={{context.patientId}}&code=6768-6&date=ge{two_years_ago}",
+    #                 'diabetes': f"Condition?patient={{context.patientId}}&code=73211009&onset-date=ge{two_years_ago}",
+    #                 'ckd': f"Condition?patient={{context.patientId}}&code=431855005&onset-date=ge{two_years_ago}",
+    #                 'smoking_status': f"Observation?patient={{context.patientId}}&code=72166-2&date=ge{two_years_ago}",
+    #                 'alcohol_use': f"Observation?patient={{context.patientId}}&code=74013-4&date=ge{two_years_ago}"
+    #             },
+    #         }
+    #     ]
+    # })
     return JsonResponse({
-        'services':[
+        'services': [
             {
-                'hook':"patient-view",
-                'title':'HyperPredict',
-                'description':'Hello, this is an AI assisted app for blood pressure management!',
-                'id':'80120',
+                'hook': "patient-view",
+                'title': 'HyperPredict',
+                'description': 'AI-assisted app for blood pressure management and prediction.',
+                'id': '80120',
                 'prefetch': {
                     'patient': "Patient/{{context.patientId}}",
-                    'observations': "Observation?patient={{context.patientId}}",
+                    'bmi': "Observation?patient={{context.patientId}}&code=39156-5",
+                    'waist': "Observation?patient={{context.patientId}}&code=8280-0",
+                    'sbp': "Observation?patient={{context.patientId}}&code=8480-6",
+                    'dbp': "Observation?patient={{context.patientId}}&code=8462-4",
+                    'cavi': "Observation?patient={{context.patientId}}&code=CUSTOM-CAVI",  # Custom Code
+                    'hdl': "Observation?patient={{context.patientId}}&code=2085-9",
+                    'ldl': "Observation?patient={{context.patientId}}&code=13457-7",
+                    'uric_acid': "Observation?patient={{context.patientId}}&code=14959-1",
+                    'fasting_glucose': "Observation?patient={{context.patientId}}&code=2339-0",
+                    'triglycerides': "Observation?patient={{context.patientId}}&code=2571-8",
+                    'alp': "Observation?patient={{context.patientId}}&code=6768-6",
+                    'diabetes': "Condition?patient={{context.patientId}}&code=73211009",
+                    'ckd': "Condition?patient={{context.patientId}}&code=431855005",
+                    'smoking_status': "Observation?patient={{context.patientId}}&code=72166-2",
+                    'alcohol_use': "Observation?patient={{context.patientId}}&code=74013-4"
                 },
             }
         ]
-        })
+    })
 
+
+
+    
 @csrf_exempt 
 def check_id(request,app_id):
     
@@ -49,8 +98,11 @@ def check_id(request,app_id):
         decoded_body = body.decode("utf-8")  
         json_data = json.loads(decoded_body)
         formatted_body = json.dumps(json_data, indent=4)
-        print("Get Prefetch formatted_body!", formatted_body)
-       
+        #print("Get Prefetch formatted_body!", formatted_body)
+
+        ## APPS which deal with the prefetched data.
+        with open("prefetch_data.json", "w") as json_file:
+           json.dump(json_data, json_file, indent=4)
         
         return JsonResponse({
             "cards":[
@@ -139,16 +191,11 @@ def callback(request):
         "redirect_uri": settings.OIDC_REDIRECT_URI,
         "client_id": settings.OIDC_CLIENT_ID,
         "client_secret": settings.OIDC_CLIENT_SECRET,
-        "code_verifier": code_verifier,  # Must match the original challenge
-        "scope": settings.OIDC_RP_SCOPES, 
-        "response_type": "code",# Ensure all scopes are requested
-        "authority": "https://app.meldrx.com/",
+        "code_verifier": code_verifier
     }
-
-   
-
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     # Send the POST request to the OIDC token endpoint
-    response = requests.post(settings.OIDC_TOKEN_ENDPOINT, data=token_data)
+    response = requests.post(settings.OIDC_TOKEN_ENDPOINT, data=token_data, headers = headers)
 
     if response.status_code != 200:
         return HttpResponseBadRequest(f"Failed to exchange code for token: {response.text}")
@@ -161,10 +208,10 @@ def callback(request):
     
     print("Decoded ID Token:", decoded_id)
     print("Decoded access Token:",decoded_access)
-    print("response: ",token_json)
+    
 
    
-    return JsonResponse(token_json)
+    # return JsonResponse(token_json)
 
 
 

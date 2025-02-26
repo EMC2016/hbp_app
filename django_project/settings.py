@@ -25,8 +25,8 @@ SECRET_KEY = 'django-insecure--)yy9(#v(_+rp&b+2jl_w2ffxm_k2!1jvg!@6$6!s2a=xb82r9
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-URL = "a6aba9658a6cb8.lhr.life"
-BASE_URL = "https://a6aba9658a6cb8.lhr.life"
+URL = "23247740bf1603.lhr.life"
+BASE_URL = f"https://{URL}"
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", URL]
 
@@ -175,8 +175,9 @@ OIDC_STORE_ACCESS_TOKEN = 'True'
 OIDC_RP_SCOPES = 'openid profile launch patient/*.* fhirUser'
 OIDC_AUTHORITY = "https://app.meldrx.com/"
 OIDC_CLIENT_ID = "8b2eac23c7c6415b9cca55abe431501f"
+#OIDC_CLIENT_ID = "8a9c3cd033de49f2998a74369df478e3"
 OIDC_CLIENT_SECRET = "40fF8oMvtF86aheT6tCGcYQLBF7rGS"
 OIDC_REDIRECT_URI = f"{BASE_URL}/bpapp/callback"
-OIDC_TOKEN_ENDPOINT ="https://app.meldrx.com/connect/token"
-OIDC_USERINFO_ENDPOINT = f"{OIDC_AUTHORITY}/userinfo"
+OIDC_TOKEN_ENDPOINT =f"{OIDC_AUTHORITY}connect/token"
+OIDC_USERINFO_ENDPOINT = f"{OIDC_AUTHORITY}userinfo"
 
