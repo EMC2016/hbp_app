@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 import xgboost as xgb
+from scipy.special import expit
+
 
 
 def extract_observation_value(entry):
@@ -63,7 +65,7 @@ def discovery_cds_services(request):
                     'ast': "Observation?patient={{context.patientId}}&code=1920-8",
                     # 'crp': "Observation?patient={{context.patientId}}&code=1988-5",
                     'smoking_status': "Observation?patient={{context.patientId}}&code=72166-2",
-                    'alcohol_use': "Observation?patient={{context.patientId}}&code=74013-4",
+                    # 'alcohol_use': "Observation?patient={{context.patientId}}&code=74013-4",
                     # 'physical_activity': "Observation?patient={{context.patientId}}&code=68215-7",
                     'ckd': "Condition?patient={{context.patientId}}&code=431855005",
                     'egfr': "Observation?patient={{context.patientId}}&code=33914-3", 
@@ -118,7 +120,7 @@ def check_id(request,app_id):
             #"LDL": extract_observation_value(prefetch.get("ldl")),
             "Triglycerides": extract_observation_value(prefetch.get("triglycerides")),
             "Smoking": prefetch.get("smoking_status", {}).get("entry", [{}])[0].get("resource", {}).get("valueCodeableConcept", {}).get("coding", [{}])[0].get("display", None),
-            "Alcohol": prefetch.get("alcohol_use", {}).get("entry", [{}])[0].get("resource", {}).get("valueQuantity", {}).get("value", None),
+            # "Alcohol": prefetch.get("alcohol_use", {}).get("entry", [{}])[0].get("resource", {}).get("valueQuantity", {}).get("value", None),
             "HbA1c": extract_observation_value(prefetch.get("hba1c")),
             "SerumCreatinine": extract_observation_value(prefetch.get("serum_creatinine")),
             "ALT": extract_observation_value(prefetch.get("alt")),
@@ -145,18 +147,24 @@ def check_id(request,app_id):
         data["Smoking"] = smoking_map.get(data["Smoking"], 0)
         data["Gender"] = gender_map.get(data["Gender"],0)
         
-        default_values = {
-            "BMI": 22.5,
-            "HDL": 50,
-            "Triglycerides": 100,
-            "Glucose": 90,
-            "HbA1c": 5.4,
-            "SerumCreatinine": 1.0,
-            "ALT": 20,
-            "AST": 20,
-            "Alcohol":4,
-        }
+        # default_values = {
+        #     "BMI": 22.5,
+        #     "HDL": 50,
+        #     "Triglycerides": 100,
+        #     "Glucose": 90,
+        #     "HbA1c": 5.4,
+        #     "SerumCreatinine": 1.0,
+        #     "ALT": 20,
+        #     "AST": 20,
+        #     # "Alcohol":4,
+        # }
+        csv_file_path = "/Users/qingxiaochen/Documents/Program/Hackathon/MedAI/hyertension_project/XGBoostModel/default_values.csv"
 
+        # Load CSV into a DataFrame
+        df_loaded = pd.read_csv(csv_file_path)
+
+        # Convert first row to dictionary
+        default_values = df_loaded.iloc[0].to_dict()
         
         
         # Convert to Pandas DataFrame
@@ -174,10 +182,15 @@ def check_id(request,app_id):
         dinput = xgb.DMatrix(df_patient)
 
         # Predict probability using the model
-        probabilities = model.predict(dinput)
+        y_pred_log_odds = model.predict(dinput, output_margin=True)
+        probabilities = expit(y_pred_log_odds)
+        
+        probability = probabilities[0]
 
         # Display the result
-        print(f"Predicted Probability: {probabilities[0]:.4f}")
+        print(f"Predicted Probability: {probability}")
+        print(probabilities)
+        print(y_pred_log_odds)
 
         # Print extracted data for debugging
         csv_filename = "patient_data.csv"
@@ -191,24 +204,30 @@ def check_id(request,app_id):
         ## APPS which deal with the prefetched data.
         with open(f"prefetch_data.json", "w") as json_file:
            json.dump(json_data, json_file, indent=4)
-        
+        probability = 0.8
+        if probability > 0.5:
+            alert_indicator = "warning"
+            summary_text = "High Risk of Hypertension! Please consult a doctor."
+        else:
+            alert_indicator = "info"
+            summary_text = "Hypertension risk is low."
+
+        # Return JSON response with appropriate alert level
         return JsonResponse({
-            "cards":[
+            "cards": [
                 {
-                    "summary":"Hello world!",
-                    "indicator":"info",
-                    "source":{
-                        "label":"test service",
+                    "summary": summary_text,
+                    "indicator": alert_indicator,
+                    "source": {
+                        "label": "Hypertension Risk Assessment",
                     },
-                    "links":[
+                    "links": [
                         {
-                            "label":"HyperTension App",
-                            "url":f"{settings.BASE_URL}/bpapp/launch",
-                            #"url":"http://localhost:4434/launch",
-                            "type":"smart",
+                            "label": "HyperTension App",
+                            "url": f"{settings.BASE_URL}/bpapp/launch",
+                            "type": "smart",
                         }
                     ]
-                    
                 }
             ]
         })
@@ -271,8 +290,7 @@ def callback(request):
         return HttpResponseBadRequest("PKCE verifier missing")
     
     
-    
-        # Exchange the authorization code for tokens
+     # Exchange the authorization code for tokens
     token_data = {
         "grant_type": "authorization_code",
         "code": auth_code,
