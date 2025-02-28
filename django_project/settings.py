@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure--)yy9(#v(_+rp&b+2jl_w2ffxm_k2!1jvg!@6$6!s2a=xb82r9
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-URL = "23247740bf1603.lhr.life"
+URL = "a81f1bfbccd1df.lhr.life"
 BASE_URL = f"https://{URL}"
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", URL]

@@ -11,41 +11,35 @@ import requests
 from django.http import JsonResponse, HttpResponseBadRequest
 import jwt
 from datetime import datetime, timedelta
+import pandas as pd
+import numpy as np
+import xgboost as xgb
+
+
+def extract_observation_value(entry):
+    """Extracts a value from an Observation or checks Condition existence."""
+    if not entry or "entry" not in entry or not entry["entry"]:
+        return None  # Return None if the entry is empty
+
+    resource = entry["entry"][0]["resource"]
+
+    # If it's an Observation, extract the numeric value
+    if resource["resourceType"] == "Observation":
+        return resource.get("valueQuantity", {}).get("value", None)
+
+    # If it's a Condition, return True (indicating presence of the condition)
+    if resource["resourceType"] == "Condition":
+        return True  # Indicates the patient has hypertension
+
+    return None  # Default case
+
 
 def discovery_cds_services(request):
     print("discovery request: ", request.method)
     
     # Calculate the date two years ago from today
-    two_years_ago = (datetime.utcnow() - timedelta(days=2*365)).strftime("%Y-%m-%d")
+    #two_years_ago = (datetime.utcnow() - timedelta(days=2*365)).strftime("%Y-%m-%d")
 
-    # return JsonResponse({
-    #     'services': [
-    #         {
-    #             'hook': "patient-view",
-    #             'title': 'HyperPredict',
-    #             'description': 'AI-assisted app for blood pressure management and prediction.',
-    #             'id': '80120',
-    #             'prefetch': {
-    #                 'patient': "Patient/{{context.patientId}}",
-    #                 'bmi': f"Observation?patient={{context.patientId}}&code=39156-5&date=ge{two_years_ago}",
-    #                 'waist': f"Observation?patient={{context.patientId}}&code=8280-0&date=ge{two_years_ago}",
-    #                 'sbp': f"Observation?patient={{context.patientId}}&code=8480-6&date=ge{two_years_ago}",
-    #                 'dbp': f"Observation?patient={{context.patientId}}&code=8462-4&date=ge{two_years_ago}",
-    #                 'cavi': f"Observation?patient={{context.patientId}}&code=CUSTOM-CAVI&date=ge{two_years_ago}",  # Custom Code
-    #                 'hdl': f"Observation?patient={{context.patientId}}&code=2085-9&date=ge{two_years_ago}",
-    #                 'ldl': f"Observation?patient={{context.patientId}}&code=13457-7&date=ge{two_years_ago}",
-    #                 'uric_acid': f"Observation?patient={{context.patientId}}&code=14959-1&date=ge{two_years_ago}",
-    #                 'fasting_glucose': f"Observation?patient={{context.patientId}}&code=2339-0&date=ge{two_years_ago}",
-    #                 'triglycerides': f"Observation?patient={{context.patientId}}&code=2571-8&date=ge{two_years_ago}",
-    #                 'alp': f"Observation?patient={{context.patientId}}&code=6768-6&date=ge{two_years_ago}",
-    #                 'diabetes': f"Condition?patient={{context.patientId}}&code=73211009&onset-date=ge{two_years_ago}",
-    #                 'ckd': f"Condition?patient={{context.patientId}}&code=431855005&onset-date=ge{two_years_ago}",
-    #                 'smoking_status': f"Observation?patient={{context.patientId}}&code=72166-2&date=ge{two_years_ago}",
-    #                 'alcohol_use': f"Observation?patient={{context.patientId}}&code=74013-4&date=ge{two_years_ago}"
-    #             },
-    #         }
-    #     ]
-    # })
     return JsonResponse({
         'services': [
             {
@@ -55,22 +49,27 @@ def discovery_cds_services(request):
                 'id': '80120',
                 'prefetch': {
                     'patient': "Patient/{{context.patientId}}",
+                    'age': "Observation?patient={{context.patientId}}&code=30525-0",  # Age
+                    'gender': "Observation?patient={{context.patientId}}&code=76689-9",  # Gender
                     'bmi': "Observation?patient={{context.patientId}}&code=39156-5",
-                    'waist': "Observation?patient={{context.patientId}}&code=8280-0",
-                    'sbp': "Observation?patient={{context.patientId}}&code=8480-6",
-                    'dbp': "Observation?patient={{context.patientId}}&code=8462-4",
-                    'cavi': "Observation?patient={{context.patientId}}&code=CUSTOM-CAVI",  # Custom Code
-                    'hdl': "Observation?patient={{context.patientId}}&code=2085-9",
-                    'ldl': "Observation?patient={{context.patientId}}&code=13457-7",
-                    'uric_acid': "Observation?patient={{context.patientId}}&code=14959-1",
+                    # 'waist': "Observation?patient={{context.patientId}}&code=8280-0",
                     'fasting_glucose': "Observation?patient={{context.patientId}}&code=2339-0",
+                    'hdl': "Observation?patient={{context.patientId}}&code=2085-9",
+                    # 'ldl': "Observation?patient={{context.patientId}}&code=13457-7",
                     'triglycerides': "Observation?patient={{context.patientId}}&code=2571-8",
-                    'alp': "Observation?patient={{context.patientId}}&code=6768-6",
-                    'diabetes': "Condition?patient={{context.patientId}}&code=73211009",
-                    'ckd': "Condition?patient={{context.patientId}}&code=431855005",
+                    'hba1c': "Observation?patient={{context.patientId}}&code=4548-4",
+                    'serum_creatinine': "Observation?patient={{context.patientId}}&code=2160-0",
+                    'alt': "Observation?patient={{context.patientId}}&code=1742-6",
+                    'ast': "Observation?patient={{context.patientId}}&code=1920-8",
+                    # 'crp': "Observation?patient={{context.patientId}}&code=1988-5",
                     'smoking_status': "Observation?patient={{context.patientId}}&code=72166-2",
-                    'alcohol_use': "Observation?patient={{context.patientId}}&code=74013-4"
-                },
+                    'alcohol_use': "Observation?patient={{context.patientId}}&code=74013-4",
+                    # 'physical_activity': "Observation?patient={{context.patientId}}&code=68215-7",
+                    'ckd': "Condition?patient={{context.patientId}}&code=431855005",
+                    'egfr': "Observation?patient={{context.patientId}}&code=33914-3", 
+                    'hypertension': "Condition?patient={{context.patientId}}&code=59621000"
+                }
+
             }
         ]
     })
@@ -97,11 +96,100 @@ def check_id(request,app_id):
             body += chunk  
         decoded_body = body.decode("utf-8")  
         json_data = json.loads(decoded_body)
+        
+        
+        prefetch = json_data.get("prefetch", {})
+
+        # Extract individual values from FHIR response
+        patient_id = prefetch.get("patient", {}).get("id")
+    
+        # Extract observations using helper function
+        data = {
+            "PatientID": patient_id,
+            "Age": prefetch.get("patient", {}).get("birthDate"),  # Convert birthdate to age later
+            "Gender": prefetch.get("patient", {}).get("gender"),
+            "BMI": extract_observation_value(prefetch.get("bmi")),
+            "Hypertension": 1 if extract_observation_value(prefetch.get("hypertension")) else 0,
+            "Glucose": extract_observation_value(prefetch.get("fasting_glucose")),
+            # "WaistCircumference": extract_observation_value(prefetch.get("waist")),
+            # "SBP": extract_observation_value(prefetch.get("sbp")),
+            # "DBP": extract_observation_value(prefetch.get("dbp")),
+            "HDL": extract_observation_value(prefetch.get("hdl")),
+            #"LDL": extract_observation_value(prefetch.get("ldl")),
+            "Triglycerides": extract_observation_value(prefetch.get("triglycerides")),
+            "Smoking": prefetch.get("smoking_status", {}).get("entry", [{}])[0].get("resource", {}).get("valueCodeableConcept", {}).get("coding", [{}])[0].get("display", None),
+            "Alcohol": prefetch.get("alcohol_use", {}).get("entry", [{}])[0].get("resource", {}).get("valueQuantity", {}).get("value", None),
+            "HbA1c": extract_observation_value(prefetch.get("hba1c")),
+            "SerumCreatinine": extract_observation_value(prefetch.get("serum_creatinine")),
+            "ALT": extract_observation_value(prefetch.get("alt")),
+            "AST": extract_observation_value(prefetch.get("ast")),
+            # "CRP": extract_observation_value(prefetch.get("crp")),
+            # "PhysicalActivity": extract_observation_value(prefetch.get("physical_activity")),
+            
+           
+        }
+
+        # Convert birthdate to age (assuming today's date)
+        if data["Age"]:
+            from datetime import datetime
+            birth_year = int(data["Age"].split("-")[0])  # Extract year from birthdate
+            data["Age"] = datetime.today().year - birth_year
+            
+        smoking_map = {
+            "Never smoked tobacco (finding)": 0,
+            "Ex-smoker (finding)": 1,
+            "Current smoker (finding)": 1
+        }
+        gender_map = {"male": 1, "female": 2}
+        # Convert Smoking Status to 0 or 1
+        data["Smoking"] = smoking_map.get(data["Smoking"], 0)
+        data["Gender"] = gender_map.get(data["Gender"],0)
+        
+        default_values = {
+            "BMI": 22.5,
+            "HDL": 50,
+            "Triglycerides": 100,
+            "Glucose": 90,
+            "HbA1c": 5.4,
+            "SerumCreatinine": 1.0,
+            "ALT": 20,
+            "AST": 20,
+            "Alcohol":4,
+        }
+
+        
+        
+        # Convert to Pandas DataFrame
+        df_patient = pd.DataFrame([data])
+        
+        # Assuming `df` is the DataFrame containing these columns
+        df_patient.fillna(default_values, inplace=True)
+        df_patient = df_patient.drop(columns=["PatientID"])
+        # df_patient["Alcohol"] = pd.to_numeric(df_patient["Alcohol"], errors="coerce")
+
+        model_path = "/Users/qingxiaochen/Documents/Program/Hackathon/MedAI/hyertension_project/XGBoostModel/xgb_hypertension.json"  # Adjust the path to your actual model location
+
+        model = xgb.Booster()
+        model.load_model(model_path)
+        dinput = xgb.DMatrix(df_patient)
+
+        # Predict probability using the model
+        probabilities = model.predict(dinput)
+
+        # Display the result
+        print(f"Predicted Probability: {probabilities[0]:.4f}")
+
+        # Print extracted data for debugging
+        csv_filename = "patient_data.csv"
+        df_patient.to_csv(csv_filename, mode='a', index=False, header=not pd.io.common.file_exists(csv_filename))
+
+        print(f"✅ Patient data saved to {csv_filename}")
+
         formatted_body = json.dumps(json_data, indent=4)
         #print("Get Prefetch formatted_body!", formatted_body)
 
         ## APPS which deal with the prefetched data.
-        with open("prefetch_data.json", "w") as json_file:
+        with open(f"prefetch_data.json", "w") as json_file:
            json.dump(json_data, json_file, indent=4)
         
         return JsonResponse({
