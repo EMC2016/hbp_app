@@ -46,29 +46,29 @@ X_train.fillna(X_train.median(), inplace=True)
 smote = SMOTE(sampling_strategy='auto', random_state=42)
 X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
 
-feature_weights = {
-    "Age": 2.5, "Hypertension": 3.0, "Smoking": 3.5, "Glucose": 2.0,
-    "HbA1c": 2.5, "HDL": 0.1, "Triglycerides": 2.5, "SerumCreatinine": 1.5,
-    "BMI": 1.5, "ALT": 0.5, "AST": 0.5,
-}
+# feature_weights = {
+#     "Age": 2.5, "Hypertension": 3.0, "Smoking": 3.5, "Glucose": 2.0,
+#     "HbA1c": 2.5, "HDL": 0.1, "Triglycerides": 2.5, "SerumCreatinine": 1.5,
+#     "BMI": 1.5, "ALT": 0.5, "AST": 0.5,
+# }
 
 
 
-sample_weights = X_train_resampled.copy()
+# sample_weights = X_train_resampled.copy()
 
-for col, weight in feature_weights.items():
-    if col in sample_weights:
-        sample_weights[col] *= weight  # Apply feature importance weights
+# for col, weight in feature_weights.items():
+#     if col in sample_weights:
+#         sample_weights[col] *= weight  # Apply feature importance weights
 
-# **Sum across columns to get row-wise weights**
-sample_weights = sample_weights.sum(axis=1)  
+# # **Sum across columns to get row-wise weights**
+# sample_weights = sample_weights.sum(axis=1)  
 
-# **Ensure all weights are positive**
-sample_weights = np.clip(sample_weights, 1.0, None)  # Clip min weight to 1.0 to avoid XGBoost errors
+# # **Ensure all weights are positive**
+# sample_weights = np.clip(sample_weights, 1.0, None)  # Clip min weight to 1.0 to avoid XGBoost errors
 
-# **Convert datasets to XGBoost DMatrix**
-dtrain = xgb.DMatrix(X_train_resampled, label=y_train_resampled, weight=sample_weights)
-dvalid = xgb.DMatrix(X_test, label=y_test)
+# # **Convert datasets to XGBoost DMatrix**
+# dtrain = xgb.DMatrix(X_train_resampled, label=y_train_resampled, weight=sample_weights)
+# dvalid = xgb.DMatrix(X_test, label=y_test)
 
 # **Handle Class Imbalance (Scale Positive Class Weight)**
 # scale_pos_weight = sum(y_train_resampled == 0) / sum(y_train_resampled == 1)  # Adjusts imbalance
@@ -76,10 +76,13 @@ dvalid = xgb.DMatrix(X_test, label=y_test)
 
 # scale_pos_weight = 2803 / 248 
 
+dtrain = xgb.DMatrix(X_train_resampled, label=y_train_resampled)
+dvalid = xgb.DMatrix(X_test, label=y_test)
+
 # Define parameters
 params = {
     "objective": "binary:logistic",  # Binary classification
-    "learning_rate": 0.04,
+    "learning_rate": 0.05,
     "max_depth": 10,
     "eval_metric": "logloss",  # Use "auc" for ROC-AUC evaluation
     # "scale_pos_weight": scale_pos_weight,
@@ -92,7 +95,7 @@ xgb_model = xgb.train(
     dtrain,
     num_boost_round=400,  # Maximum boosting rounds
     evals=[(dvalid, "validation")],  # Validation set
-    early_stopping_rounds=200,  # Stop if no improvement for 20 rounds
+    early_stopping_rounds=100,  # Stop if no improvement for 20 rounds
     verbose_eval=True  # Print progress
 )
 

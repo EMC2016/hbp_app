@@ -17,7 +17,6 @@ import xgboost as xgb
 from scipy.special import expit
 
 
-
 def extract_observation_value(entry):
     """Extracts a value from an Observation or checks Condition existence."""
     if not entry or "entry" not in entry or not entry["entry"]:
@@ -34,6 +33,43 @@ def extract_observation_value(entry):
         return True  # Indicates the patient has hypertension
 
     return None  # Default case
+
+
+def organize_and_store_json_data(data,patient_id):
+    # Extracting values and timestamps from the "prefetch" section
+    extracted_data = []
+
+    for category, details in data.get("prefetch", {}).items():
+        if isinstance(details, dict) and "entry" in details:
+            for entry in details["entry"]:
+                resource = entry.get("resource", {})
+                timestamp = resource.get("effectiveDateTime") or resource.get("onsetDateTime") or resource.get("recordedDate")
+                value = None
+                unit = ""
+
+                if "valueQuantity" in resource:
+                    value = resource["valueQuantity"]["value"]
+                    unit = resource["valueQuantity"].get("unit", "")
+                elif "valueCodeableConcept" in resource:
+                    value = resource["valueCodeableConcept"]["text"]
+
+                if timestamp and value is not None:
+                    extracted_data.append({"Category": category, "Timestamp": timestamp, "Value": value, "Unit": unit})
+
+    # Convert to DataFrame and display
+    df_extracted = pd.DataFrame(extracted_data)
+    # tools.display_dataframe_to_user(name="Extracted Values and Timestamps", dataframe=df_extracted)
+    
+
+
+    # Define CSV file name
+    csv_filename = f"extracted_data_{patient_id}.csv"
+
+    # Save to CSV
+    df_extracted.to_csv(csv_filename, index=False)
+
+
+
 
 
 def discovery_cds_services(request):
@@ -67,8 +103,8 @@ def discovery_cds_services(request):
                     'smoking_status': "Observation?patient={{context.patientId}}&code=72166-2",
                     # 'alcohol_use': "Observation?patient={{context.patientId}}&code=74013-4",
                     # 'physical_activity': "Observation?patient={{context.patientId}}&code=68215-7",
-                    'ckd': "Condition?patient={{context.patientId}}&code=431855005",
-                    'egfr': "Observation?patient={{context.patientId}}&code=33914-3", 
+                    # 'ckd': "Condition?patient={{context.patientId}}&code=431855005",
+                    # 'egfr': "Observation?patient={{context.patientId}}&code=33914-3", 
                     'hypertension': "Condition?patient={{context.patientId}}&code=59621000"
                 }
 
@@ -100,10 +136,13 @@ def check_id(request,app_id):
         json_data = json.loads(decoded_body)
         
         
+        
+        
         prefetch = json_data.get("prefetch", {})
 
         # Extract individual values from FHIR response
         patient_id = prefetch.get("patient", {}).get("id")
+        organize_and_store_json_data(json_data,patient_id)
     
         # Extract observations using helper function
         data = {
@@ -117,7 +156,7 @@ def check_id(request,app_id):
             # "SBP": extract_observation_value(prefetch.get("sbp")),
             # "DBP": extract_observation_value(prefetch.get("dbp")),
             "HDL": extract_observation_value(prefetch.get("hdl")),
-            #"LDL": extract_observation_value(prefetch.get("ldl")),
+            # "LDL": extract_observation_value(prefetch.get("ldl")),
             "Triglycerides": extract_observation_value(prefetch.get("triglycerides")),
             "Smoking": prefetch.get("smoking_status", {}).get("entry", [{}])[0].get("resource", {}).get("valueCodeableConcept", {}).get("coding", [{}])[0].get("display", None),
             # "Alcohol": prefetch.get("alcohol_use", {}).get("entry", [{}])[0].get("resource", {}).get("valueQuantity", {}).get("value", None),
@@ -147,36 +186,27 @@ def check_id(request,app_id):
         data["Smoking"] = smoking_map.get(data["Smoking"], 0)
         data["Gender"] = gender_map.get(data["Gender"],0)
         
-        # default_values = {
-        #     "BMI": 22.5,
-        #     "HDL": 50,
-        #     "Triglycerides": 100,
-        #     "Glucose": 90,
-        #     "HbA1c": 5.4,
-        #     "SerumCreatinine": 1.0,
-        #     "ALT": 20,
-        #     "AST": 20,
-        #     # "Alcohol":4,
-        # }
-        csv_file_path = "/Users/qingxiaochen/Documents/Program/Hackathon/MedAI/hyertension_project/XGBoostModel/default_values.csv"
-
+        csv_file_path = "/Users/qingxiaochen/Documents/Program/Hackathon/MedAI/hyertension_project/django_project/XGBoostModel/default_values.csv"
         # Load CSV into a DataFrame
         df_loaded = pd.read_csv(csv_file_path)
 
         # Convert first row to dictionary
         default_values = df_loaded.iloc[0].to_dict()
-        
-        
         # Convert to Pandas DataFrame
-        df_patient = pd.DataFrame([data])
+        df_patient = pd.DataFrame([data])   
         
+        #Store data in csv file
+        csv_filename = "patient_data.csv"
+        df_patient.to_csv(csv_filename, mode='a', index=False, header=not pd.io.common.file_exists(csv_filename))
+
+        print(f"✅ Patient data saved to {csv_filename}")
+          
         # Assuming `df` is the DataFrame containing these columns
         df_patient.fillna(default_values, inplace=True)
         df_patient = df_patient.drop(columns=["PatientID"])
         # df_patient["Alcohol"] = pd.to_numeric(df_patient["Alcohol"], errors="coerce")
 
-        model_path = "/Users/qingxiaochen/Documents/Program/Hackathon/MedAI/hyertension_project/XGBoostModel/xgb_hypertension.json"  # Adjust the path to your actual model location
-
+        model_path = "/Users/qingxiaochen/Documents/Program/Hackathon/MedAI/hyertension_project/django_project/XGBoostModel/xgb_hypertension.json"
         model = xgb.Booster()
         model.load_model(model_path)
         dinput = xgb.DMatrix(df_patient)
@@ -188,29 +218,20 @@ def check_id(request,app_id):
         probability = probabilities[0]
 
         # Display the result
-        print(f"Predicted Probability: {probability}")
-        print(probabilities)
-        print(y_pred_log_odds)
-
-        # Print extracted data for debugging
-        csv_filename = "patient_data.csv"
-        df_patient.to_csv(csv_filename, mode='a', index=False, header=not pd.io.common.file_exists(csv_filename))
-
-        print(f"✅ Patient data saved to {csv_filename}")
+        print(f"Predicted Probability: {probability}")       
 
         formatted_body = json.dumps(json_data, indent=4)
-        #print("Get Prefetch formatted_body!", formatted_body)
 
         ## APPS which deal with the prefetched data.
         with open(f"prefetch_data.json", "w") as json_file:
            json.dump(json_data, json_file, indent=4)
-        probability = 0.8
-        if probability > 0.5:
+
+        if probability > 0.1:
             alert_indicator = "warning"
-            summary_text = "High Risk of Hypertension! Please consult a doctor."
+            summary_text = "High Risk of Cardiovascular Disease! Please click SMARTAPP for more information."
         else:
             alert_indicator = "info"
-            summary_text = "Hypertension risk is low."
+            summary_text = "Cardiovascular disease risk is low."
 
         # Return JSON response with appropriate alert level
         return JsonResponse({
@@ -224,7 +245,8 @@ def check_id(request,app_id):
                     "links": [
                         {
                             "label": "HyperTension App",
-                            "url": f"{settings.BASE_URL}/bpapp/launch",
+                            #"url": f"{settings.BASE_URL}/bpapp/launch",
+                            "url":"http://localhost:4434/launch",
                             "type": "smart",
                         }
                     ]
@@ -233,91 +255,6 @@ def check_id(request,app_id):
         })
      
      
-
-
-def launch_app(request):
-    """Generates the OIDC authentication URL with PKCE and state protection"""
-
-    # Generate a random state (for CSRF protection)
-    state = secrets.token_hex(16)  # Equivalent to JavaScript's random state
-
-    # Generate a PKCE code verifier and challenge
-    code_verifier = pkce.generate_code_verifier(length=64)  # Secure random string
-    code_challenge = pkce.get_code_challenge(code_verifier)
-
-    # Store these values in the session for later token exchange
-    request.session["oidc_state"] = state
-    request.session["oidc_code_verifier"] = code_verifier  # Save to validate PKCE
-
-    # Construct the OIDC authorization URL
-    oidc_params = {
-        "client_id": settings.OIDC_CLIENT_ID,
-        "client_secret": settings.OIDC_CLIENT_SECRET,
-        "redirect_uri": settings.OIDC_REDIRECT_URI,
-        "response_type": "code",
-        "scope": settings.OIDC_RP_SCOPES,
-        "state": state,
-        "code_challenge": code_challenge,
-        "code_challenge_method": "S256",
-        "response_mode": "query",  # Default behavior
-    }
-
-    auth_url = f"{settings.OIDC_AUTHORITY}/connect/authorize?{urlencode(oidc_params)}"
-
-    print(f"Redirecting to OIDC URL: {auth_url}")  # Debugging
-
-    return redirect(auth_url)
-
-
-
-def callback(request):
-    """Handles OIDC callback and processes the signin response"""
-    print("Procee CallBack: ",request)
-    # Extract the authorization code from the request
-    auth_code = request.GET.get("code")
-    state = request.GET.get("state")
-    
-    if not auth_code:
-        return HttpResponseBadRequest("Missing authorization code")
-
-    # Validate the state parameter (CSRF protection)
-    if state != request.session.get("oidc_state"):
-        return HttpResponseBadRequest("Invalid state parameter")
-
-    # Retrieve the stored PKCE code verifier
-    code_verifier = request.session.get("oidc_code_verifier")
-    if not code_verifier:
-        return HttpResponseBadRequest("PKCE verifier missing")
-    
-    
-     # Exchange the authorization code for tokens
-    token_data = {
-        "grant_type": "authorization_code",
-        "code": auth_code,
-        "redirect_uri": settings.OIDC_REDIRECT_URI,
-        "client_id": settings.OIDC_CLIENT_ID,
-        "client_secret": settings.OIDC_CLIENT_SECRET,
-        "code_verifier": code_verifier
-    }
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    # Send the POST request to the OIDC token endpoint
-    response = requests.post(settings.OIDC_TOKEN_ENDPOINT, data=token_data, headers = headers)
-
-    if response.status_code != 200:
-        return HttpResponseBadRequest(f"Failed to exchange code for token: {response.text}")
-
-    token_json = response.json()
-    id_token = token_json.get("id_token")
-    decoded_id = jwt.decode(id_token, options={"verify_signature": False})
-    access_token = token_json.get("access_token")
-    decoded_access = jwt.decode(access_token, options={"verify_signature": False})
-    
-    print("Decoded ID Token:", decoded_id)
-    print("Decoded access Token:",decoded_access)
-    
-
-   
-    # return JsonResponse(token_json)
 
 
 
