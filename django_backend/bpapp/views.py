@@ -80,7 +80,7 @@ def check_id(request,app_id):
 
         df_patient = dp.fill_NaN_and_drop_patientId(df_patient)
         
-        model_path = "/Users/qingxiaochen/Documents/Program/Hackathon/MedAI/hyertension_project/django_project/XGBoostModel/xgb_hypertension.json"
+        model_path = "/Users/qingxiaochen/Documents/Program/Hackathon/MedAI/meldrx_app/medlrx_project/XGBoostModel/xgb_hypertension.json"
         model = xgb.Booster()
         model.load_model(model_path)
         dinput = xgb.DMatrix(df_patient)
@@ -96,10 +96,24 @@ def check_id(request,app_id):
 
         if probability > 0.1:
             alert_indicator = "warning"
-            summary_text = "High Risk of Cardiovascular Disease! Please click SMARTAPP for more information."
+            summary_text = "High Risk of Cardiovascular Disease!  Visit SMARTAPP for more."
+            suggestions = [
+                {"label": "Schedule a Cardiologist Appointment"},
+                {"label": "Order a Lipid Panel Test"},
+                {"label": "Start a Low-Sodium Diet"},
+                {"label": "Increase Daily Physical Activity"},
+            ]
+            
+            suggestions = "1.Schedule a Cardiologist Appointment 2. Order a Lipid Panel Test "
+
+            
         else:
             alert_indicator = "info"
             summary_text = "Cardiovascular disease risk is low."
+            suggestions = [
+                {"label": "Keep Daily Physical Activity"},
+                {"label": "Maintain Healthy Diet"},
+            ]
 
         # Return JSON response with appropriate alert level
         return JsonResponse({
@@ -107,15 +121,16 @@ def check_id(request,app_id):
                 {
                     "summary": summary_text,
                     "indicator": alert_indicator,
+                    # "detail": suggestions,
                     "source": {
-                        "label": "Hypertension Risk Assessment",
+                        "label": "Cardiovascular Disease Risk Assessment",
                     },
                     "links": [
                         {
-                            "label": "HyperTension App",
+                            "label": "Cardiovascular App",
                             "url":"http://localhost:4434/launch",
                             "type": "smart",
-                        }
+                        },
                     ]
                 }
             ]

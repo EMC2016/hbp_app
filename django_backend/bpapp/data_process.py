@@ -17,6 +17,78 @@ import xgboost as xgb
 from scipy.special import expit
 
 
+def extract_json_data_chronological(data):
+    # Extracting values and timestamps from the "prefetch" section
+    extracted_data = []
+    prefetch = data.get("prefetch", {})
+    patient_id = prefetch.get("patient", {}).get("id")
+
+    # Define attributes for time-series data
+    attributes = {
+        'bmi': "39156-5",
+        'fasting_glucose': "2339-0",
+        'hdl': "2085-9",
+        'triglycerides': "2571-8",
+        'hba1c': "4548-4",
+        'serum_creatinine': "2160-0",
+        'alt': "1742-6",
+        'ast': "1920-8",
+    }
+
+    # Store single values for age, gender, and hypertension
+
+    # Loop through prefetch data
+    for category, details in prefetch.items():
+        if isinstance(details, dict) and "entry" in details:
+            for entry in details["entry"]:
+                resource = entry.get("resource", {})
+                timestamp = resource.get("effectiveDateTime") or resource.get("onsetDateTime") or resource.get("recordedDate")
+                value = None
+                unit = ""
+
+                if "valueQuantity" in resource:
+                    value = resource["valueQuantity"]["value"]
+                    unit = resource["valueQuantity"].get("unit", "")
+                elif "valueCodeableConcept" in resource:
+                    value = resource["valueCodeableConcept"]["text"]
+
+
+
+                # Store time-series attributes
+                if timestamp and value is not None:
+                    for attr_name, code in attributes.items():
+                        if code in details.get("resourceType", "") or code in resource.get("code", {}).get("coding", [{}])[0].get("code", ""):
+                            extracted_data.append({
+                                "Patient ID": patient_id,
+                                "Category": attr_name,
+                                "Timestamp": timestamp,
+                                "Value": value,
+                                "Unit": unit
+                            })
+
+    # Convert to DataFrame
+    df_extracted = pd.DataFrame(extracted_data)
+
+    # Save single-value patient info separately
+    
+
+    # Save to CSV
+    csv_filename_values = f"/Users/qingxiaochen/Documents/Program/Hackathon/MedAI/meldrx_app/medlrx_project/vite_app/src/assets/extracted_data_{patient_id}.csv"
+
+    df_extracted.to_csv(csv_filename_values, index=False)
+
+    print(f"Chronological data saved to {csv_filename_values}")
+
+    # Save raw prefetch data for debugging
+    with open("prefetch_data.json", "w") as json_file:
+        json.dump(data, json_file, indent=4)
+
+    return df_extracted
+
+
+
+
+
 def extract_observation_value(entry):
     """Extracts a value from an Observation or checks Condition existence."""
     if not entry or "entry" not in entry or not entry["entry"]:
@@ -32,44 +104,6 @@ def extract_observation_value(entry):
         return True  # Indicates the patient has hypertension
 
     return None  # Default case
-
-
-def extract_json_data_chronological(data):
-    # Extracting values and timestamps from the "prefetch" section
-    extracted_data = []
-    prefetch = data.get("prefetch", {})
-    patient_id = prefetch.get("patient", {}).get("id")
-
-    for category, details in prefetch.items():
-        if isinstance(details, dict) and "entry" in details:
-            for entry in details["entry"]:
-                resource = entry.get("resource", {})
-                timestamp = resource.get("effectiveDateTime") or resource.get("onsetDateTime") or resource.get("recordedDate")
-                value = None
-                unit = ""
-
-                if "valueQuantity" in resource:
-                    value = resource["valueQuantity"]["value"]
-                    unit = resource["valueQuantity"].get("unit", "")
-                elif "valueCodeableConcept" in resource:
-                    value = resource["valueCodeableConcept"]["text"]
-
-                if timestamp and value is not None:
-                    extracted_data.append({"Category": category, "Timestamp": timestamp, "Value": value, "Unit": unit})
-
-    # Convert to DataFrame and display
-    df_extracted = pd.DataFrame(extracted_data)
-    # tools.display_dataframe_to_user(name="Extracted Values and Timestamps", dataframe=df_extracted)
-    
-    # Define CSV file name
-    csv_filename = f"extracted_data_{patient_id}.csv"
-
-    # Save to CSV
-    df_extracted.to_csv(csv_filename, index=False)
-    
-    ## APPS which deal with the prefetched data.
-    with open(f"prefetch_data.json", "w") as json_file:
-        json.dump(data, json_file, indent=4)
     
     
 def extract_pretech_data_and_convert_values(json_data):
@@ -112,8 +146,14 @@ def extract_pretech_data_and_convert_values(json_data):
     data["Gender"] = gender_map.get(data["Gender"],0)
     
     
-    df_patient = pd.DataFrame([data])   
-    
+    patient_info = {"Patient ID": patient_id, "Age": data["Age"] , "Gender": data["Gender"] , "Hypertension": data["Hypertension"] ,"Smoking":data["Smoking"]}
+    df_patient_info = pd.DataFrame([patient_info])
+    csv_filename_info = f"/Users/qingxiaochen/Documents/Program/Hackathon/MedAI/meldrx_app/medlrx_project/vite_app/src/assets/patient_info_{patient_id}.csv"
+    df_patient_info.to_csv(csv_filename_info, index=False)
+    print(f"Patient info saved to {csv_filename_info}")
+
+
+    df_patient = pd.DataFrame([data])       
     csv_filename = "patient_data.csv"
     df_patient.to_csv(csv_filename, mode='a', index=False, header=not pd.io.common.file_exists(csv_filename))
     print(f"✅ Patient data saved to {csv_filename}")
@@ -122,7 +162,7 @@ def extract_pretech_data_and_convert_values(json_data):
 
     
 def fill_NaN_and_drop_patientId(df_patient):
-    csv_file_path = "/Users/qingxiaochen/Documents/Program/Hackathon/MedAI/hyertension_project/django_project/XGBoostModel/default_values.csv"
+    csv_file_path = "/Users/qingxiaochen/Documents/Program/Hackathon/MedAI/meldrx_app/medlrx_project/XGBoostModel/default_values.csv"
     # Load CSV into a DataFrame
     df_loaded = pd.read_csv(csv_file_path)
 
