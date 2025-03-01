@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Patient Health Data & AI Chat</title>
+    <script type="module" src="src/main.js"></script>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 20px;
+        background-color: #f4f4f4;
+      }
+
+      h1 {
+        color: #333;
+      }
+
+      .chart-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 40px;
+      }
+
+      .chat-container {
+        width: 400px;
+        margin: auto;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 15px;
+      }
+
+      .chat-box {
+        height: 300px;
+        overflow-y: auto;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background: #fafafa;
+      }
+
+      .message {
+        padding: 8px;
+        margin: 5px;
+        border-radius: 5px;
+        max-width: 75%;
+      }
+
+      .user {
+        background: #d1e7ff;
+        text-align: right;
+        margin-left: auto;
+      }
+
+      .bot {
+        background: #e2ffe2;
+        text-align: left;
+      }
+
+      .input-container {
+        display: flex;
+        margin-top: 10px;
+      }
+
+      #user-input {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+
+      button {
+        padding: 10px 15px;
+        margin-left: 10px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      button:hover {
+        background: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Patient Health Data Visualization</h1>
+    <p id="loading-message">Loading charts... Please wait.</p>
+
+    <div class="chart-container" id="chart-container">
+      <!-- Charts will be inserted here dynamically -->
+    </div>
+
+    <!-- AI Chat Box -->
+    <div class="chat-container">
+      <h2>AI Medical Assistant</h2>
+      <div id="chat-box" class="chat-box">
+        <div id="chat-messages"></div>
+      </div>
+      <div class="input-container">
+        <input
+          type="text"
+          id="user-input"
+          placeholder="Ask me anything..."
+          onkeypress="handleKeyPress(event)"
+        />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </body>
+</html>
