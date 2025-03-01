@@ -162,22 +162,5 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")  # Required for collectstati
 
 
 
-OIDC_RP_SIGN_ALGO = 'RS256'
-OIDC_OP_JWKS_ENDPOINT ="https://app.meldrx.com/.well-known/openid-configuration/jwks"
-OIDC_OP_AUTHORIZATION_ENDPOINT ="https://app.meldrx.com/connect/authorize"
-OIDC_OP_TOKEN_ENDPOINT ="https://app.meldrx.com/connect/token"
-OIDC_OP_USER_ENDPOINT ="https://app.meldrx.com/connect/userinfo"
-LOGIN_REDIRECT_URL = f"{BASE_URL}/bpapp/dashboard"
-LOGOUT_REDIRECT_URL = f"{BASE_URL}/bpapp/dashboard"
-OIDC_USE_PKCE = 'True'
-OIDC_STORE_ACCESS_TOKEN = 'True'
 
-OIDC_RP_SCOPES = 'openid profile launch patient/*.* fhirUser'
-OIDC_AUTHORITY = "https://app.meldrx.com/"
-OIDC_CLIENT_ID = "8b2eac23c7c6415b9cca55abe431501f"
-#OIDC_CLIENT_ID = "8a9c3cd033de49f2998a74369df478e3"
-OIDC_CLIENT_SECRET = "40fF8oMvtF86aheT6tCGcYQLBF7rGS"
-OIDC_REDIRECT_URI = f"{BASE_URL}/bpapp/callback"
-OIDC_TOKEN_ENDPOINT =f"{OIDC_AUTHORITY}connect/token"
-OIDC_USERINFO_ENDPOINT = f"{OIDC_AUTHORITY}userinfo"
 
