@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure--)yy9(#v(_+rp&b+2jl_w2ffxm_k2!1jvg!@6$6!s2a=xb82r9
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-URL = "62f41c32112b48.lhr.life"
+URL = "f9d0e6d50986c2.lhr.life"
 BASE_URL = f"https://{URL}"
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", URL]
@@ -43,8 +43,17 @@ INSTALLED_APPS = [
     'bpapp',
     'rest_framework',
     'mozilla_django_oidc',
-
+    'daphne',  # Django ASGI server
+    'channels',  # Enables WebSockets
 ]
+
+ASGI_APPLICATION = "django_project.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",  # Use Redis in production
+    },
+}
 
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
