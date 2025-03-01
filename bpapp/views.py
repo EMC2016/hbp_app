@@ -20,8 +20,7 @@ from scipy.special import expit
 def extract_observation_value(entry):
     """Extracts a value from an Observation or checks Condition existence."""
     if not entry or "entry" not in entry or not entry["entry"]:
-        return None  # Return None if the entry is empty
-
+        return None  
     resource = entry["entry"][0]["resource"]
 
     # If it's an Observation, extract the numeric value
