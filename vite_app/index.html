@@ -3,39 +3,114 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Patient Health Data & AI Chat</title>
+    <title>Patient Health Dashboard</title>
     <script type="module" src="src/main.js"></script>
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <style>
       body {
         font-family: Arial, sans-serif;
-        text-align: center;
-        margin: 20px;
+        margin: 0;
+        padding: 0;
         background-color: #f4f4f4;
-      }
-
-      h1 {
-        color: #333;
-      }
-
-      .chart-container {
         display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        margin-bottom: 40px;
+        height: 100vh;
       }
 
+      /* Main layout */
+      .container {
+        display: flex;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Left section for charts */
+      .left-section {
+        flex: 2;
+        padding: 20px;
+        overflow-y: auto;
+      }
+
+      /* Middle section for the report */
+      .middle-section {
+        flex: 1.5;
+        padding: 20px;
+        background: #ffffff;
+        border-left: 2px solid #ddd;
+        border-right: 2px solid #ddd;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow-y: auto;
+      }
+
+      /* Right section for AI assistant */
+      .right-section {
+        flex: 1.5;
+        padding: 20px;
+        background-color: white;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      /* Chart Container */
+      .chart-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 25px;
+        padding: 20px;
+      }
+
+      .chart {
+        position: relative;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 10px;
+        min-height: 320px;
+      }
+
+      /* CVD Report Styling */
+
+      #cvd-report {
+        width: 100%;
+        max-width: 600px;
+        padding: 20px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        text-align: left;
+        line-height: 1.6; /* Increase line spacing */
+      }
+
+      .report-section {
+        margin-bottom: 15px; /* Space between sections */
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .report-list {
+        margin-bottom: 20px; /* Space after lists */
+      }
+
+      .report-list li {
+        margin-bottom: 8px; /* Space between list items */
+      }
+
+      /* AI Chat Box */
       .chat-container {
-        width: 400px;
-        margin: auto;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
         background: white;
         border-radius: 8px;
         box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
         padding: 15px;
+        height: 100%;
       }
 
       .chat-box {
-        height: 300px;
+        flex-grow: 1;
         overflow-y: auto;
         padding: 10px;
         border: 1px solid #ddd;
@@ -91,28 +166,41 @@
     </style>
   </head>
   <body>
-    <h1>Patient Health Data Visualization</h1>
-    <p id="loading-message">Loading charts... Please wait.</p>
+    <div class="container">
+      <!-- Left Section: Charts -->
+      <div class="left-section">
+        <h1>Patient Health Data Visualization</h1>
+        <div id="patient-info" style="text-align: center; padding: 20px"></div>
+        <p id="loading-message">Loading charts... Please wait.</p>
 
-    <div class="chart-container" id="chart-container">
-      <!-- Charts will be inserted here dynamically -->
-    </div>
+        <div class="chart-container" id="chart-container"></div>
+      </div>
 
-    <!-- AI Chat Box -->
-    <div class="chat-container">
-      <h2>AI Medical Assistant</h2>
-      <div id="chat-box" class="chat-box">
-        <div id="chat-messages"></div>
+      <!-- Middle Section: CVD Risk Report -->
+      <div class="middle-section">
+        <h2>Cardiovascular Risk Report</h2>
+        <div id="cvd-report"></div>
       </div>
-      <div class="input-container">
-        <input
-          type="text"
-          id="user-input"
-          placeholder="Ask me anything..."
-          onkeypress="handleKeyPress(event)"
-        />
-        <button onclick="sendMessage()">Send</button>
+
+      <!-- Right Section: AI Chat Assistant -->
+      <div class="right-section">
+        <div class="chat-container">
+          <h2>AI Medical Assistant</h2>
+          <div id="chat-box" class="chat-box">
+            <div id="chat-messages"></div>
+          </div>
+          <div class="input-container">
+            <input
+              type="text"
+              id="user-input"
+              placeholder="Ask me anything..."
+              onkeypress="handleKeyPress(event)"
+            />
+            <button onclick="sendMessage()">Send</button>
+          </div>
+        </div>
       </div>
     </div>
+    <script src="src/main.js"></script>
   </body>
 </html>
