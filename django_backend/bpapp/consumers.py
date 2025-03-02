@@ -7,7 +7,7 @@ from transformers import pipeline
 # mistral_client = MistralClient(api_key="your-mistral-api-key") 
 
 # Load Local LLM Model
-pipe = pipeline("text-generation", model="meta-llama/Llama-3.2-3B")
+pipe = pipeline("text-generation", model="meta-llama/Llama-3.2-1B")
 pipe.tokenizer.pad_token_id = pipe.model.config.eos_token_id
 
 
@@ -20,6 +20,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         """ Processes messages from frontend and responds """
         data = json.loads(text_data)
+        
         user_message = data["message"]
         print(user_message)
         # Generate AI response using LLM
