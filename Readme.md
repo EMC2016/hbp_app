@@ -61,7 +61,7 @@ The frontend was developed using **Vite and React** for a fast and responsive us
 
 ## **What's Next for CardioX AI**
 
-🔒 **Secure Patient Data Storage**: Explore privacy-preserving storage solutions (e.g., **Canisters on ICP**) for patient data.  
+🔒 **Secure Patient Data Storage**: Explore privacy-preserving database solutions (e.g., **Canisters on ICP**) for patient data.  
 ☁️ **Cloud Deployment**: Deploy both the **frontend and backend** on cloud infrastructure for scalability.  
 👥 **Multi-User Support**: Enable simultaneous access for multiple users across different roles (e.g., patients, doctors).  
 📊 **Expanding Predictive Capabilities**: Incorporate **ECG, imaging, and genetic data** for a more comprehensive risk assessment.  
