@@ -1,14 +1,16 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+import aiohttp
 from transformers import pipeline
-# from mistral_inference import MistralClient  # Import Mistral client
+from django.conf import settings
 
-# # Initialize Mistral Client
-# mistral_client = MistralClient(api_key="your-mistral-api-key") 
 
 # Load Local LLM Model
-pipe = pipeline("text-generation", model="meta-llama/Llama-3.2-1B")
-pipe.tokenizer.pad_token_id = pipe.model.config.eos_token_id
+# pipe = pipeline("text-generation", model="meta-llama/Llama-3.1-8B-Instruct")
+# pipe.tokenizer.pad_token_id = pipe.model.config.eos_token_id
+
+HF_API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
+# HF_API_KEY = "your-huggingface-api-key" 
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -20,23 +22,33 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         """ Processes messages from frontend and responds """
         data = json.loads(text_data)
-        
-        user_message = data["message"]
-        print(user_message)
-        # Generate AI response using LLM
-    #     response = pipe(f"User: {user_message}\nAI:", max_length=300,truncation=True,do_sample=False,  # Prevents random sampling (avoids repetitive loops)
-    # temperature=0.7)[0]["generated_text"]
-        
-        response = pipe(
-            user_message,  # No "User: AI:" prefix
-            max_new_tokens=100,  # Increase response length slightly
-            truncation=True,
-            eos_token_id=pipe.tokenizer.eos_token_id  # Ensure proper stopping
-        )[0]["generated_text"]
+        user_message = data.get("message", "")
+        user_message = f"{user_message}\nPlease provide a response with less than 300 tokens."
 
-        print(response)
-        await self.send(text_data=json.dumps({"message": response}))
+        print("User Message:", user_message)
+        
+        response = await self.query_hf_model(user_message)
+        formatted_response = response.replace("\n", "\n")  # Ensures newline preservation
+
+        print("AI Response:", response)
+        
+        await self.send(text_data=json.dumps({"message": formatted_response,"format": "markdown"}))
 
     async def disconnect(self, close_code):
         """ Handles disconnection """
         print("WebSocket Disconnected")
+
+    async def query_hf_model(self, prompt):
+        """ Queries the Hugging Face Inference API asynchronously """
+        headers = {"Authorization": f"Bearer {settings.HF_API_KEY}"}
+        payload = {"inputs": prompt, "parameters": {"max_new_tokens": 300}}
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(HF_API_URL, headers=headers, json=payload) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return result[0]["generated_text"] if result else "Sorry, I couldn't generate a response."
+                else:
+                    error_message = await response.text()
+                    return f"Error {response.status}: {error_message}"
+               
