@@ -12,6 +12,8 @@ CardioX AI leverages **XGBoost** to predict cardiovascular disease risk based on
 
 ## **How We Built It**
 
+![PDF Page](video/slide/Slide5.png)
+
 ### **Backend for CDS Hooks** (Django)
 
 We built the backend using **Django**, integrating **WSGI** for handling prefetched chunked data and **ASGI** to support WebSockets for real-time AI interactions.

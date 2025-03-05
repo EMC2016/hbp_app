@@ -8,6 +8,30 @@ const userManager = new UserManager({
   redirect_uri: "http://localhost:4434/callback",
 });
 
+const normalRangeFemale = {
+  bmi: { min: 18.5, max: 24.9 },
+  fasting_glucose: { min: 70, max: 99 },
+  hdl: { min: 50, max: 80 },
+  triglycerides: { min: 0, max: 150 },
+  hba1c: { min: 0, max: 5.7 },
+  serum_creatinine: { min: 0.59, max: 1.04 },
+  alt: { min: 0, max: 30 },
+  ast: { min: 8, max: 33 },
+};
+const normalRangeMale = {
+  bmi: { min: 18.5, max: 24.9 },
+  fasting_glucose: { min: 70, max: 99 },
+  hdl: { min: 40, max: 60 },
+  triglycerides: { min: 0, max: 150 },
+  hba1c: { min: 0, max: 5.7 },
+  serum_creatinine: { min: 0.74, max: 1.35 },
+  alt: { min: 0, max: 40 },
+  ast: { min: 8, max: 48 },
+};
+let normalRange = null;
+
+let patientInfo = {}; // Declare a global object
+
 // let patientId = null;
 
 if (window.location.pathname === "/launch") {
@@ -68,18 +92,23 @@ function fetchAndVisualize(csvPath) {
         const patient = patientData[0]; // Assuming only one row exists
 
         // Convert values if needed
-        const genderText = patient.Gender === "1" ? "Male" : "Female";
-        const hypertensionText = patient.Hypertension === "1" ? "Yes" : "No";
-        const smokingText = patient.Smoking === "1" ? "Yes" : "No";
+        patientInfo.gender = patient.Gender === "1" ? "Male" : "Female";
+        if (patient.Gender == 1) {
+          normalRange = normalRangeMale;
+        } else {
+          normalRange = normalRangeFemale;
+        }
+        patientInfo.hypertension = patient.Hypertension === "1" ? "Yes" : "No";
+        patientInfo.smoking = patient.Smoking === "1" ? "Yes" : "No";
 
         // Insert patient info above charts
         document.getElementById("patient-info").innerHTML = `
-          <h2>Patient Information</h2>
-          <p><strong>Patient ID:</strong> ${patient["Patient ID"]}</p>
+           <!--  <h2>Patient Information</h2> -->
+           <!-- <p><strong>Patient ID:</strong> ${patient["Patient ID"]}</p>-->
           <p><strong>Age:</strong> ${patient.Age}</p>
-          <p><strong>Gender:</strong> ${genderText}</p>
-          <p><strong>Hypertension:</strong> ${hypertensionText}</p>
-          <p><strong>Smoking Status:</strong> ${smokingText}</p>
+          <p><strong>Gender:</strong> ${patientInfo.gender}</p>
+          <p><strong>Hypertension:</strong> ${patientInfo.hypertension}</p>
+          <p><strong>Smoking Status:</strong> ${patientInfo.smoking}</p>
           <hr>
         `;
       }
@@ -119,15 +148,22 @@ function fetchAndVisualize(csvPath) {
 
       // Group data by Category
       const categories = [...new Set(data.map((d) => d.Category))];
+      const categoryUnits = {};
+
+      categories.forEach((category) => {
+        // Find the unit for this category (assuming all values have the same unit)
+        const unit = data.find((d) => d.Category === category)?.Unit || "";
+        categoryUnits[category] = unit; // Store unit for each category
+      });
 
       // Remove loading messages
       document.getElementById("loading-message").style.display = "none";
-
+      createLegend();
       // Create a chart for each category
       categories.forEach((category) => {
         const filteredData = data.filter((d) => d.Category === category);
         if (filteredData.length > 0) {
-          createBarChart(filteredData, category);
+          createBarChart(filteredData, category, categoryUnits[category]);
           console.log("created a chart");
         }
       });
@@ -136,7 +172,7 @@ function fetchAndVisualize(csvPath) {
 }
 
 // Function to create a line chart using D3.js
-function createBarChart(data, category) {
+function createBarChart(data, category, unit) {
   const width = 280, // Reduce width slightly to fit inside the container
     height = 200,
     margin = { top: 30, right: 20, bottom: 50, left: 50 };
@@ -147,9 +183,6 @@ function createBarChart(data, category) {
     .attr("class", "chart")
     .style("width", `${width + margin.left + margin.right}px`) // Ensure consistent width
     .style("overflow", "hidden");
-
-  // Append a title for the chart
-  chartDiv.append("h3").style("font-weight", "bold").text(category);
 
   const svg = chartDiv
     .append("svg")
@@ -194,15 +227,106 @@ function createBarChart(data, category) {
     .attr("y", (d) => yScale(+d.Value))
     .attr("width", xScale.bandwidth() * 0.7) // Reduce width to fit correctly
     .attr("height", (d) => height - yScale(+d.Value))
-    .attr("fill", "green")
+    // .attr("fill", "green")
+    .attr("fill", (d) => {
+      const currange = normalRange[category];
+      console.log(currange);
+      console.log(category);
+      console.log(d.Value);
+      return +d.Value < currange.min || +d.Value > currange.max
+        ? "orange"
+        : "green";
+    })
     .attr("opacity", 0.9)
     .on("mouseover", function () {
-      d3.select(this).attr("fill", "organge").attr("opacity", 1);
+      d3.select(this).attr("fill", "yellow").attr("opacity", 1); // Change color on hover
     })
-    .on("mouseout", function () {
-      d3.select(this).attr("fill", "green").attr("opacity", 0.9);
+    .on("mouseout", function (event, d) {
+      // Restore original color after mouse leaves
+      const currange = normalRange[category];
+      const originalColor =
+        +d.Value < currange.min || +d.Value > currange.max ? "orange" : "green";
+
+      d3.select(this).attr("fill", originalColor).attr("opacity", 0.9);
     });
+
+  svg
+    .append("line")
+    .attr("x1", 0)
+    .attr("x2", width)
+    .attr("y1", yScale(normalRange[category].max))
+    .attr("y2", yScale(normalRange[category].max))
+    .attr("stroke", "blue")
+    .attr("stroke-dasharray", "5,5");
+
+  svg
+    .append("line")
+    .attr("x1", 0)
+    .attr("x2", width)
+    .attr("y1", yScale(normalRange[category].min))
+    .attr("y2", yScale(normalRange[category].min))
+    .attr("stroke", "blue")
+    .attr("stroke-dasharray", "5,5");
+
+  // Append a title for the chart
+  chartDiv
+    .append("div")
+    .style("text-align", "center") // Center align
+    .style("margin-top", "10px") // Add some spacing
+    .style("font-weight", "bold")
+    .style("font-size", "14px") // Adjust font size if needed
+    .text(`${category} (${unit})`);
 }
+
+// Function to create a legend at the top of all charts
+function createLegend() {
+  const legendContainer = d3
+    .select("#chart-container")
+    .insert("div", ":first-child") // Insert legend at the top
+    .attr("id", "legend")
+    .style("display", "flex")
+    .style("justify-content", "center") // Center the legend
+    .style("align-items", "center")
+    .style("gap", "15px") // Add spacing between legend items
+    .style("margin-bottom", "10px"); // Space between legend and charts
+
+  // Normal (Square)
+  legendContainer
+    .append("span")
+    .style("display", "inline-block")
+    .style("width", "12px") // Square size
+    .style("height", "12px")
+    .style("background-color", "green")
+    .style("margin-right", "5px");
+
+  legendContainer.append("span").text("Normal");
+
+  // Abnormal (Square)
+  legendContainer
+    .append("span")
+    .style("display", "inline-block")
+    .style("width", "12px")
+    .style("height", "12px")
+    .style("background-color", "orange")
+    .style("margin-left", "10px") // Space between legend items
+    .style("margin-right", "5px");
+
+  legendContainer.append("span").text("Abnormal");
+
+  // Normal Range (Blue Line)
+  legendContainer
+    .append("span")
+    .style("display", "inline-block")
+    .style("width", "20px")
+    .style("height", "2px")
+    .style("background-color", "blue")
+    .style("margin-left", "10px") // Space between legend items
+    .style("margin-right", "5px");
+
+  legendContainer.append("span").text("Normal Range");
+}
+
+// Call the legend function before drawing charts
 
 // Connect to WebSocket running on Daphne (port 8001)
 const socket = new WebSocket("ws://localhost:8001/ws/chat/");
@@ -216,9 +340,12 @@ socket.onmessage = function (event) {
   const data = JSON.parse(event.data);
   console.log("AI Response:", data.message);
 
-  // Append message to the chat UI
+  // Convert newlines to <br> for HTML rendering
+  const formattedMessage = data.message.replace(/\n/g, "<br>");
+
+  // Append message to the chat UI with proper formatting
   document.getElementById("chat-messages").innerHTML += `
-    <div class="message bot">${data.message}</div>
+    <div class="message bot" style="white-space: pre-line;">${formattedMessage}</div>
   `;
 };
 
