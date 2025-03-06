@@ -12,7 +12,7 @@ CardioX AI leverages **XGBoost** to predict cardiovascular disease risk based on
 
 ## **How We Built It**
 
-![PDF Page](video/slide/Slide5.png)
+![PDF Page](video/framework.jpg)
 
 ### **Backend for CDS Hooks** (Django)
 
